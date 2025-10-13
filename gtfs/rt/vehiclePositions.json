@@ -1,0 +1,21 @@
+{
+  "header": {
+    "gtfsRealtimeVersion": "2.0",
+    "timestamp": 1735579200
+  },
+  "entity": [
+    {
+      "id": "veh1",
+      "vehicle": {
+        "trip": { "tripId": "A_001", "routeId": "A" },
+        "position": {
+          "latitude": -12.053,
+          "longitude": -77.03,
+          "bearing": 45
+        },
+        "timestamp": 1735579200,
+        "occupancyStatus": "MANY_SEATS_AVAILABLE"
+      }
+    }
+  ]
+}

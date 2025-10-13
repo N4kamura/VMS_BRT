@@ -1,0 +1,7 @@
+data/
+.venv/
+assets/
+tests/
+__pycache__/
+weight/
+*.png
