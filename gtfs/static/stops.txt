@@ -1,5 +1,4 @@
-stop_id,stop_name,stop_lat,stop_lon,zone_id
-EST_CENTRAL,Estación Central,-12.0575,-77.0277,LIM
-PARADERO_1,Paradero Tacna,-12.0501,-77.0338,LIM
-PARADERO_2,Paradero UNI,-11.9918,-77.0605,LIM
-NARANJAL,Estación Naranjal,-11.9911,-77.0600,LIM
+stop_id,stop_name,stop_lat,stop_lon,location_type
+PAR_EXPRESA,Vía Expresa,-12.09015,-77.01748,0
+PAR_DELAIRE,Del Aire,12.08892,-77.00804,0
+PAR_AVIACION,Aviación,-12.08848,-77.0046,0

@@ -1,3 +1,2 @@
 route_id,service_id,trip_id,trip_headsign,direction_id,shape_id
-A,WKD,A_001,Est. Central → Naranjal,0,shape_A_0
-A,WKD,A_002,Naranjal → Est. Central,1,shape_A_1
+204,WKD,A_001,San Miguel → Pachacámac,0,1

@@ -43,6 +43,7 @@ def _calculate_polyline_length(polyline):
     for i in range(len(polyline) - 1):
         seg_length = _calculate_segment_length(polyline[i], polyline[i + 1])
         total_length += seg_length
+        print(f"Segment {i+1} length: {int(total_length)} meters")
     
     return total_length
 
@@ -198,3 +199,11 @@ def get_percentage_along_polyline(polyline, projected_point, segment_index, forw
     percentage = round((distance_along / total_length) * 100, 2)
     return percentage
 
+# if __name__ == "__main__":
+    # Example usage
+    # shapefile_path = "tests/shapes/Route_204.shp"
+    # route_coordinates = read_route_coordinates(shapefile_path)
+    # for idx, elem in enumerate(route_coordinates):
+    #     print(f"1,{round(elem[0],5)},{round(elem[1],5)},{idx+1}")
+    # distance = _calculate_polyline_length(route_coordinates)
+    # print(distance)
