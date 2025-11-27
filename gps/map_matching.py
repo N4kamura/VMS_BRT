@@ -1,6 +1,6 @@
-import shapefile
 import os
 import math
+import csv
 
 def _calculate_segment_length(seg_start, seg_end):
     """
@@ -43,45 +43,61 @@ def _calculate_polyline_length(polyline):
     for i in range(len(polyline) - 1):
         seg_length = _calculate_segment_length(polyline[i], polyline[i + 1])
         total_length += seg_length
-        print(f"Segment {i+1} length: {int(total_length)} meters")
+        # print(f"Segment {i+1} length: {int(total_length)} meters")
     
     return total_length
 
-def read_route_coordinates(shapefile_path, multipoints=False):
+def read_route_coordinates(shapes_file, multipoints=False):
     """
-    Read latitude and longitude coordinates from Route_401.shp file.
+    Read latitude and longitude coordinates from GTFS shapes.txt file.
     Returns a list of (latitude, longitude) tuples.
     """
+    
     # Check if the file exists
-    if not os.path.exists(shapefile_path):
-        raise FileNotFoundError(f"Shapefile not found at {shapefile_path}")
+    if not os.path.exists(shapes_file):
+        raise FileNotFoundError(f"Shapes.txt file not found at {shapes_file}")
     
-    # Read the shapefile
-    sf = shapefile.Reader(shapefile_path)
+    # Dictionary to store coordinates for each shape_id
+    shapes_dict = {} # TODO: I need an auxiliar function to detect the shape_id based on route_id 8)
     
-    # Get all shapes (there should be only one line)
-    shapes = sf.shapes()
-    
-    # Extract coordinates from the first (and only) shape
-    if shapes and multipoints == False:
-        shape = shapes[0]  # NOTE: Get the first shape
-        points = shape.points  # Get all points in the shape
+    # Read the shapes.txt file
+    with open(shapes_file, 'r', newline='', encoding='utf-8') as csvfile:
+        reader = csv.DictReader(csvfile)
         
-        # Convert to list of (latitude, longitude) tuples
-        # NOTE: In shapefiles, the order is typically (longitude, latitude)
-        coordinates = [(point[1], point[0]) for point in points]
-        return coordinates
+        for row in reader:
+            shape_id = row['shape_id']
+            lat = float(row['shape_pt_lat'])
+            lon = float(row['shape_pt_lon'])
+            sequence = int(row['shape_pt_sequence'])
+            accumulated_distance = float(row.get('shape_dist_traveled', 0.0))
+            
+            if shape_id not in shapes_dict:
+                shapes_dict[shape_id] = []
+            
+            # Store the coordinate with its sequence number for proper ordering
+            shapes_dict[shape_id].append((sequence, lat, lon, accumulated_distance))
     
-    elif shapes and multipoints == True:
-        all_coordinates = []
-        for shape in shapes:
-            points = shape.points
-            coords = [(point[1], point[0]) for point in points]
-            all_coordinates.extend(coords)
-        return all_coordinates
+    # Sort coordinates by sequence number for each shape
+    for shape_id in shapes_dict:
+        shapes_dict[shape_id].sort(key=lambda x: x[0])  # Sort by sequence number
     
+    # If not multipoints, return coordinates for the first shape_id
+    if not multipoints:
+        if shapes_dict:
+            # Get the first shape_id and return its coordinates
+            first_shape_id = next(iter(shapes_dict))
+            coordinates = [(lat, lon) for seq, lat, lon, acc_dist in shapes_dict[first_shape_id]]
+            return coordinates, shapes_dict
+        else:
+            return [], {}
+    
+    # If multipoints, return all coordinates from all shapes
     else:
-        return []
+        all_coordinates = []
+        for shape_id in shapes_dict:
+            coords = [(lat, lon) for seq, lat, lon, acc_dist in shapes_dict[shape_id]]
+            all_coordinates.extend(coords)
+        return all_coordinates, shapes_dict
 
 def find_closest_projection(point, polyline):
     """
@@ -131,53 +147,47 @@ def find_closest_projection(point, polyline):
     
     return closest_point, segment_index
 
-def point_to_segment_distance(route_coordinates, segment_index, projected_point, forward=True):
+def point_to_segment_distance(route_coordinates: list[tuple[float, float]], segment_index: int, projected_point: tuple[float, float], upper_limit_point: int) -> float:
     """
-    Calculate the cumulative distance along the route up to a specific point on a given segment.
-    
+    Calculate the remaining distance from the projected point to the upper limit point along the route.
+
     Args:
-        route_coordinates: List of (lat, lon) tuples representing all points of the multiline
-        segment_index: Index of the segment where the point is located
+        route_coordinates: List of (lat, lon) tuples representing all points of the route
+        segment_index: Index of the segment where the projected point is located
         projected_point: (lat, lon) tuple of the already projected point
-        forward: Boolean indicating if the route follows the original order (True) or reverse (False)
+        upper_limit_point: Index of the point that represents the upper limit in the route (typically the next station)
     
     Returns:
-        float: Cumulative distance along the route up to the point (in meters)
+        float: Remaining distance from the projected point to the upper limit point (in meters)
     """
     # Validate segment index
     if segment_index < 0 or segment_index >= len(route_coordinates) - 1:
         raise ValueError(f"Segment index {segment_index} is out of bounds for route with {len(route_coordinates)} points")
     
-    # If forward is False, we need to reverse the route coordinates
-    coordinates = route_coordinates if forward else list(reversed(route_coordinates))
+    # Delimitation of part of the route to consider
+    coordinates = route_coordinates[segment_index:upper_limit_point + 1]
     
-    # Calculate the index in the potentially reversed coordinates
-    # If we reversed the route, we need to adjust the segment index accordingly
-    if not forward:
-        adjusted_segment_index = len(coordinates) - 2 - segment_index
-    else:
-        adjusted_segment_index = segment_index
-    
-    # Calculate the cumulative distance up to the specified segment
+    ## Calculate the cumulative distance up to the specified segment ##
     cumulative_distance = 0.0
-    
+
     # Add the length of all complete segments before the target segment
-    for i in range(adjusted_segment_index):
+    for i in range(len(coordinates)-1):
         seg_start = coordinates[i]
         seg_end = coordinates[i + 1]
         seg_length = _calculate_segment_length(seg_start, seg_end)
         cumulative_distance += seg_length
     
     # Calculate the partial distance from segment start to the already projected point
-    seg_start = coordinates[adjusted_segment_index]
+    seg_start = route_coordinates[segment_index]
     partial_distance = _calculate_segment_length(seg_start, projected_point)
     
-    # Add the partial distance to the cumulative distance
-    total_distance = round(cumulative_distance + partial_distance,2)
+    # Deduct the partial distance from the cumulative distance
+    remain_distance_to_station = round(cumulative_distance - partial_distance,2)
     
-    return total_distance
+    return remain_distance_to_station
 
 def get_percentage_along_polyline(polyline, projected_point, segment_index, forward=True):
+    # XXX: Possible deprecated function
     """
     Calculate the percentage position of a projected point along the total length of the polyline.
     
@@ -198,12 +208,3 @@ def get_percentage_along_polyline(polyline, projected_point, segment_index, forw
     
     percentage = round((distance_along / total_length) * 100, 2)
     return percentage
-
-# if __name__ == "__main__":
-    # Example usage
-    # shapefile_path = "tests/shapes/Route_204.shp"
-    # route_coordinates = read_route_coordinates(shapefile_path)
-    # for idx, elem in enumerate(route_coordinates):
-    #     print(f"1,{round(elem[0],5)},{round(elem[1],5)},{idx+1}")
-    # distance = _calculate_polyline_length(route_coordinates)
-    # print(distance)

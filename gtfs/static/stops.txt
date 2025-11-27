@@ -1,4 +1,4 @@
 stop_id,stop_name,stop_lat,stop_lon,location_type
 PAR_EXPRESA,Vía Expresa,-12.09015,-77.01748,0
-PAR_DELAIRE,Del Aire,12.08892,-77.00804,0
+PAR_DELAIRE,Del Aire,-12.08892,-77.00804,0
 PAR_AVIACION,Aviación,-12.08848,-77.0046,0
