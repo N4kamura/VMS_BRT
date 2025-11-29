@@ -79,7 +79,7 @@ def main():
 
         # Big Data reading through API
         # For testing, we use a placeholder JSON path
-        big_data_json_path = "tests/big_data.json" # NOTE: Replace with actual API call
+        big_data_json_path = "big_data.json" # NOTE: Replace with actual API call
         station_name = next_stop_id
         total_length, total_arrival_time = read_time_between_stations(big_data_json_path, station_name)
 
