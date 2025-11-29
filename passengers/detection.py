@@ -64,8 +64,8 @@ def process_image(image_path: str):
         
         # Guardar la imagen con bounding boxes (opcional)
         output_path = image_path.rsplit('.', 1)[0] + '_detected.png'
-        cv2.imwrite(output_path, result_image)
-        print(f"PASSENGERS: Imagen con bounding boxes guardada como {output_path}")
+        # cv2.imwrite(output_path, result_image)
+        # print(f"PASSENGERS: Imagen con bounding boxes guardada como {output_path}")
 
         return count
         

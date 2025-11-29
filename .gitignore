@@ -4,4 +4,4 @@ assets/
 tests/
 __pycache__/
 weight/
-*.png
+credentials/

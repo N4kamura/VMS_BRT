@@ -1,8 +1,7 @@
 from datetime import datetime, time
 
 class GPSDataGenerator:
-    def __init__(self, bus_id: str, route_id: str, latitude: float, longitude: float, speed: float, heading: float):
-        a = 53
+    def __init__(self, bus_id: str, route_id: str, latitude: float, longitude: float, speed: float, course: float):
         # Fixed information
         self.bus = bus_id
         self.route_id = route_id
@@ -11,7 +10,7 @@ class GPSDataGenerator:
         self.latitude = latitude
         self.longitude = longitude
         self.speed = speed
-        self.heading = heading
+        self.course = course
         self.timestamp = None
 
     def send_data(self):
@@ -24,7 +23,7 @@ class GPSDataGenerator:
             "longitude": self.longitude,
             "route_id": self.route_id,
             "speed": self.speed,
-            "heading": self.heading,
+            "course": self.course,
             "timestamp": self.timestamp
         }
 

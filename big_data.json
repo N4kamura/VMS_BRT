@@ -1,0 +1,13 @@
+{
+    "routes": [
+        {
+            "historicTime": 45,
+            "name": "PAR_VIDENA",
+            "length": 272,
+            "id": "1764170356406",
+            "time": 65,
+            "type": "STATIC"
+        }
+    ],
+    "updateTime": 1764228574820
+}

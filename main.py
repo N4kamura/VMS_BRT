@@ -1,73 +1,55 @@
-import os
 from passengers.detection import process_image
 import json
 from gps.map_matching import *
+from vms.vms_display import parse_colored_text_fixed, build_led_image
 from gps.gps_data_generator import GPSDataGenerator
-import csv
-import matplotlib.pyplot as plt
-import numpy as np
+from traccar.connection import obtener_coordenadas
+from time import sleep
+from gps.gtfs_functions import read_stops_info
+from big_data.read_json import read_time_between_stations
+from time import time
 
 def main():
-    # Reading data file by file
-    directory = "tests/data"
-    files = os.listdir(directory)
-
-    # XXX: For now
+    # GTFS file paths
     shapes_path = "gtfs/static/shapes.txt"
     stops_path = "gtfs/static/stops.txt"
 
-    # Read the route coordinates
+    # Read GTFS files
     route_coordinates, shapes_dict = read_route_coordinates(shapes_path, multipoints=True)
+    stops_info = read_stops_info(stops_path)
 
-    # Read stops information
-    if not os.path.exists(stops_path):
-        print("Stops file not found!")
-        return
-    
-    stops_info = {}
-    with open(stops_path, 'r', newline='', encoding='utf-8') as stops_file:
-        reader = csv.DictReader(stops_file)
+    # Traccar credentials
+    with open("credentials/credentials_traccar.json", 'r') as cred_file:
+        cred_data = json.load(cred_file)
+        BASE_URL = cred_data["BASE_URL"]
+        USUARIO = cred_data["USUARIO"]
+        PASSWORD = cred_data["PASSWORD"]
 
-        for row in reader:
-            stop_id = row['stop_id']
-            stop_name = row['stop_name']
-            stop_lat = float(row['stop_lat'])
-            stop_lon = float(row['stop_lon'])
-            stop_location_type = row.get('location_type', '0')  # Default to '0' if not present
-            stops_info[stop_id] = {
-                "name": stop_name,
-                "latitude": stop_lat,
-                "longitude": stop_lon,
-                "location_type": stop_location_type
-            }
-    
-    # Process all files and collect bus positions
-    for file in files:
-        file_path = os.path.join(directory, file)
+    count = 0
+    while True:
+        start_time = time()
+        # Traccar coordinates:
+        traccar_bus = obtener_coordenadas(BASE_URL, USUARIO, PASSWORD)
+        if not traccar_bus:
+            print("Error: Could not get bus position from Traccar.")
+            continue
 
-        image_path = os.path.join(file_path, "passengers.png")
-        vehpos_path = os.path.join(file_path, "vehicle_position.json")
-
-        # Reading coordinates and more info from json file simulating GPS
-        with open(vehpos_path, 'r') as f:
-            data = json.load(f)
-            entity = data['entity'][0]
-            BUS = GPSDataGenerator(
-                bus_id = entity["id"],
-                route_id= entity["vehicle"]["route"],
-                latitude= entity["vehicle"]["position"]["latitude"],
-                longitude= entity["vehicle"]["position"]["longitude"],
-                speed = entity["vehicle"]["position"]["speed"],
-                heading = entity["vehicle"]["position"]["heading"]
+        BUS = GPSDataGenerator(
+                bus_id = traccar_bus["id"],
+                route_id= traccar_bus["deviceId"], # Using deviceID as route_id for now
+                latitude= traccar_bus["latitude"],
+                longitude= traccar_bus["longitude"],
+                speed = traccar_bus["speed"],
+                course = traccar_bus["course"]
             )
-
+        
         # Find the closest projection on the route and which segment it is on
         closest_point, segment_index = find_closest_projection((BUS.latitude, BUS.longitude), route_coordinates)
-        # percentage = get_percentage_along_polyline(route_coordinates, closest_point, segment_index)
-        # print("Count:", count, "\t%:", f"{percentage:.2f}", "\tValue:", cumulative_distance)
 
-        ## Looking for Big Data Segment ##
+        # Determine the next stop after the closest segment
         next_stop_id = None
+        upper_limit_point = len(route_coordinates) # Default to the end of the route
+
         for point_index, coordinates in enumerate(route_coordinates[segment_index + 1:]):
             lat, lon = coordinates
             for stop_id, stop_data in stops_info.items():
@@ -79,10 +61,44 @@ def main():
             if next_stop_id:
                 break
 
-        print("Upper limit point:", upper_limit_point, "Segment index:", segment_index)
         remain_distance_to_station = point_to_segment_distance(route_coordinates, segment_index, closest_point, upper_limit_point)
-        print("Remain distance to station (m):", remain_distance_to_station, "Next stop ID:", stops_info[next_stop_id]["name"])
-        
+
+        # Process images for passenger detection
+        # TODO: Integrate with actual image source
+        # For testing, we use a placeholder image path
+        test_image_path = "passengers_1.png"
+        passengers_count = process_image(test_image_path)
+        if passengers_count >= 30:
+            capacity = "Alto"
+        elif passengers_count >= 15:
+            capacity = "Medio"
+        elif passengers_count >= 0:
+            capacity = "Bajo"
+        else:
+            capacity = "N/A"
+
+        # Big Data reading through API
+        # For testing, we use a placeholder JSON path
+        big_data_json_path = "tests/big_data.json" # NOTE: Replace with actual API call
+        station_name = next_stop_id
+        total_length, total_arrival_time = read_time_between_stations(big_data_json_path, station_name)
+
+        # Compute ETA based on remaining distance
+        if total_length and total_arrival_time and remain_distance_to_station is not None:
+            eta_seconds = (remain_distance_to_station / total_length) * total_arrival_time
+            text = f"Ruta {BUS.route_id} >> {int(eta_seconds)} seg >> {capacity}"
+            mask_with_colors = parse_colored_text_fixed(text, font_px = 12)
+            img = build_led_image(mask_with_colors)
+            img.save("led_image.png")
+
+        count += 1
+        end_time = time()
+        print(text)
+        print(f"Iteration {count} completed in {end_time - start_time:.2f} seconds.")
+        if count > 5: # XXX: To stop after 5 iterations for testing
+            break
+
+        sleep(30)  # Wait before next iteration
 
 if __name__ == "__main__":
     main()

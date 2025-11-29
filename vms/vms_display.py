@@ -7,7 +7,6 @@ la apariencia de los displays utilizados en estaciones de buses o metro.
 """
 
 from PIL import Image, ImageDraw, ImageFont
-import os
 
 # --- Configuración del panel P8 ---
 # Los paneles P8 tienen una matriz de LEDs más densa que los P10
@@ -302,18 +301,18 @@ def parse_colored_text_fixed(text: str, font_px=12, margin=3, line_spacing=2):
 # --- Ejemplo ---
 # Texto de muestra que simula información de rutas de transporte público
 # Se convierte a mayúsculas para mejor visibilidad en el display LED
-texto = "201 -> 2m Vacio -> 10m Medio\n" \
-"205  >>  5m Vacio  >>  10m Vacio\n" \
-"204  >>  10m Vacio  >>  10m Vacio\n" # 3 lineas
+# texto = "201 -> 2m Vacio -> 10m Medio\n" \
+# "205  >>  5m Vacio  >>  10m Vacio\n" \
+# "204  >>  10m Vacio  >>  10m Vacio\n" # 3 lineas
 
 # Ejemplo con texto coloreado
-texto_coloreado = "201 >> {0,255,0}2m Vacio{/color} >> {0,255,255}10m Medio{/color}\n" \
-"205 >> {0,255,0}5m Vacio{/color} >> {0,255,255}10m Vacio{/color}\n" \
-"204 >> {0,255,0}10m Lleno{/color} >> {0,255,255}10m Lleno{/color}" # 3 lineas
+# texto_coloreado = "201 >> {0,255,0}2m Vacio{/color} >> {0,255,255}10m Medio{/color}\n" \
+# "205 >> {0,255,0}5m Vacio{/color} >> {0,255,255}10m Vacio{/color}\n" \
+# "204 >> {0,255,0}10m Lleno{/color} >> {0,255,255}10m Lleno{/color}" # 3 lineas
 
 # Renderizar el texto coloreado
-masks_with_colors = parse_colored_text_fixed(texto_coloreado, font_px=12)
-img = build_led_image(masks_with_colors)
+# masks_with_colors = parse_colored_text_fixed(texto_coloreado, font_px=12)
+# img = build_led_image(masks_with_colors)
 # Guardar la imagen resultante
-img.save("vms/panel_p8.png")
-print("Imagen generada: panel_p8.png")
+# img.save("vms/panel_p8.png")
+# print("Imagen generada: panel_p8.png")
